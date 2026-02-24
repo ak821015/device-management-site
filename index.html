@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Device Management</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:Arial;background:#eef2f7;margin:0}
+header{background:#1e293b;color:white;padding:15px;text-align:center;font-size:20px}
+.container{padding:20px;max-width:700px;margin:auto}
+.card{background:white;padding:20px;margin:15px 0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+button{padding:10px 15px;border:none;border-radius:6px;background:#2563eb;color:white;cursor:pointer;margin-top:10px}
+button.secondary{background:#64748b}
+input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ddd;border-radius:6px}
+.step-title{font-weight:bold;margin-top:10px}
+footer{text-align:center;padding:15px;background:#1e293b;color:white;margin-top:30px}
+</style>
+</head>
+<body>
+
+<header>Device Management System</header>
+<div class="container">
+<div id="main"></div>
+</div>
+<footer>Developed by Ali Khaled</footer>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbwfOHhDqVUQ7ZXbT14_UfIKvRjbs3VJ6IQdWKJunmc3QdWwwUkDzavEYBas3Z3cTFoA/exec";
+
+let devicesCache=[];
+
+async function loadDevices(){
+try{
+const res=await fetch(API_URL);
+devicesCache=await res.json();
+
+let html=`<button onclick="showForm()">إضافة جهاز جديد</button>`;
+
+devicesCache.forEach((d,index)=>{
+html+=`
+<div class="card">
+<strong>${d["Device Code"]}</strong> - ${d["Device Name"]}
+<button class="secondary" onclick="viewDevice(${index})">عرض التفاصيل</button>
+</div>`;
+});
+
+document.getElementById("main").innerHTML=html;
+}catch(e){
+alert("مشكلة في الاتصال بالسيرفر");
+console.error(e);
+}
+}
+
+function showForm(){
+document.getElementById("main").innerHTML=`
+<div class="card">
+<div class="step-title">1️⃣ اسم الجهاز</div>
+<input id="name">
+
+<div class="step-title">2️⃣ مشكلة الجهاز</div>
+<input id="problem">
+
+<div class="step-title">3️⃣ هل أنت من فكيته؟</div>
+<input id="openedBy" placeholder="اكتب الاسم">
+
+<div class="step-title">4️⃣ هل تم حل المشكلة؟</div>
+<select id="solved">
+<option value="No">لا</option>
+<option value="Yes">نعم</option>
+</select>
+
+<div class="step-title">5️⃣ هل تم تسليمه لفني آخر؟</div>
+<select id="handed">
+<option value="No">لا</option>
+<option value="Yes">نعم</option>
+</select>
+
+<input id="otherTech" placeholder="اسم الفني الآخر">
+
+<div class="step-title">6️⃣ سيتم إنشاء كود تلقائي من 3 أرقام</div>
+
+<button onclick="saveDevice()">حفظ الجهاز</button>
+<button class="secondary" onclick="loadDevices()">رجوع</button>
+</div>`;
+}
+
+async function saveDevice(){
+await fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+action:"add",
+name:document.getElementById("name").value,
+problem:document.getElementById("problem").value,
+openedBy:document.getElementById("openedBy").value,
+solved:document.getElementById("solved").value,
+handed:document.getElementById("handed").value,
+otherTech:document.getElementById("otherTech").value
+})
+});
+loadDevices();
+}
+
+function viewDevice(index){
+const d=devicesCache[index];
+
+let html=`
+<div class="card">
+<h3>${d["Device Name"]}</h3>
+<p><strong>كود:</strong> ${d["Device Code"]}</p>
+<p><strong>المشكلة:</strong> ${d["Problem"]}</p>
+<p><strong>من فكه:</strong> ${d["Opened By"]}</p>
+<p><strong>تم الحل:</strong> ${d["Problem Solved"]}</p>
+<p><strong>تم تسليمه لفني آخر:</strong> ${d["Handed To Another Technician"]}</p>
+<p><strong>تم تسليمه للزبون:</strong> ${d["Delivered To Customer"]}</p>
+`;
+
+if(d["Delivered To Customer"]==="No"){
+html+=`
+<h4>تسليم للزبون</h4>
+<input id="price" placeholder="السعر">
+<input id="deliveredBy" placeholder="اسم الفني المسلم">
+<button onclick="deliver('${d["Device Code"]}')">تأكيد التسليم</button>
+`;
+}else{
+html+=`
+<p><strong>السعر:</strong> ${d["Price"]}</p>
+<p><strong>سلمه:</strong> ${d["Delivered By"]}</p>
+`;
+}
+
+html+=`<button class="secondary" onclick="loadDevices()">رجوع</button></div>`;
+document.getElementById("main").innerHTML=html;
+}
+
+async function deliver(code){
+await fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+action:"deliver",
+code:code,
+price:document.getElementById("price").value,
+deliveredBy:document.getElementById("deliveredBy").value
+})
+});
+loadDevices();
+}
+
+loadDevices();
+</script>
+</body>
+</html>
